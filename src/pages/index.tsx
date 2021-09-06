@@ -1,4 +1,5 @@
 import { GetStaticProps } from 'next';
+import Head from 'next/head';
 import Link from 'next/link';
 
 import { FiCalendar, FiUser } from 'react-icons/fi';
@@ -83,6 +84,9 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
 
   return (
     <>
+      <Head>
+        <title>Home | Mynotes</title>
+      </Head>
       <main className={commonStyles.container}>
         <Header />
 
