@@ -1,6 +1,10 @@
+/* eslint-disable react/no-danger */
 import { GetStaticPaths, GetStaticProps } from 'next';
 
 import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
+import { RichText } from 'prismic-dom';
+import Prismic from '@prismicio/client';
+import { useRouter } from 'next/router';
 import { getPrismicClient } from '../../services/prismic';
 import Header from '../../components/Header';
 
@@ -29,26 +33,29 @@ interface PostProps {
 }
 
 export default function Post({ post }: PostProps): JSX.Element {
+  const router = useRouter();
+  if (router.isFallback) {
+    return <h1>Carregando...</h1>;
+  }
+
   return (
     <>
       <Header />
-      <img src="/teste.png" alt="imagem" className={styles.banner} />
+      <img src={post.data.banner.url} alt="imagem" className={styles.banner} />
       <main className={commonStyles.container}>
         <div className={styles.postContainer}>
           <div className={styles.postTop}>
-            <h1>Some title example</h1>
+            <h1>{post.data.title}</h1>
             <ul>
               <li>
                 <FiCalendar />
-                {/* formattedDate */}
               </li>
               <li>
                 <FiUser />
-                {/* post.data.author */}
+                {post.data.author}
               </li>
               <li>
                 <FiClock />
-                {/* `${readTime} min` */}
               </li>
             </ul>
           </div>
@@ -57,6 +64,12 @@ export default function Post({ post }: PostProps): JSX.Element {
             return (
               <article key={content.heading}>
                 <h2>{content.heading}</h2>
+                <div
+                  className={styles.postContent}
+                  dangerouslySetInnerHTML={{
+                    __html: RichText.asHtml(content.body),
+                  }}
+                />
               </article>
             );
           })}
@@ -68,10 +81,20 @@ export default function Post({ post }: PostProps): JSX.Element {
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const prismic = getPrismicClient();
-  const posts = await prismic.query(TODO);
+  const posts = await prismic.query([
+    Prismic.Predicates.at('document.type', 'posts'),
+  ]);
+
+  const paths = posts.results.map(post => {
+    return {
+      params: {
+        slug: post.uid,
+      },
+    };
+  });
 
   return {
-    paths: [],
+    paths,
     fallback: true,
   };
 };
@@ -85,6 +108,7 @@ export const getStaticProps: GetStaticProps = async context => {
   const post = {
     uid: response.uid,
     first_publication_date: response.first_publication_date,
+    last_publication_date: response.last_publication_date,
     data: {
       title: response.data.title,
       subtitle: response.data.subtitle,
