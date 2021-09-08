@@ -1,11 +1,20 @@
+/* eslint-disable no-return-assign */
+/* eslint-disable no-param-reassign */
 /* eslint-disable react/no-danger */
+import Head from 'next/head';
 import { GetStaticPaths, GetStaticProps } from 'next';
 
 import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
-import { RichText } from 'prismic-dom';
-import Prismic from '@prismicio/client';
+
 import { useRouter } from 'next/router';
+
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+
+import Prismic from '@prismicio/client';
+import { RichText } from 'prismic-dom';
 import { getPrismicClient } from '../../services/prismic';
+
 import Header from '../../components/Header';
 
 import commonStyles from '../../styles/common.module.scss';
@@ -33,13 +42,36 @@ interface PostProps {
 }
 
 export default function Post({ post }: PostProps): JSX.Element {
+  const totalWords = post.data.content.reduce((total, contentItem) => {
+    total += contentItem.heading.split(' ').length;
+
+    const words = contentItem.body.map(item => item.text.split(' ').length);
+
+    words.map(word => (total += word));
+    return total;
+  }, 0);
+
+  const readTime = Math.ceil(totalWords / 200);
+
   const router = useRouter();
+
   if (router.isFallback) {
     return <h1>Carregando...</h1>;
   }
 
+  const formattedDate = format(
+    new Date(post.first_publication_date),
+    'dd MMM yyyy',
+    {
+      locale: ptBR,
+    }
+  );
+
   return (
     <>
+      <Head>
+        <title>{post.data.title} | MyNotes</title>
+      </Head>
       <Header />
       <img src={post.data.banner.url} alt="imagem" className={styles.banner} />
       <main className={commonStyles.container}>
@@ -49,6 +81,7 @@ export default function Post({ post }: PostProps): JSX.Element {
             <ul>
               <li>
                 <FiCalendar />
+                {formattedDate}
               </li>
               <li>
                 <FiUser />
@@ -56,6 +89,7 @@ export default function Post({ post }: PostProps): JSX.Element {
               </li>
               <li>
                 <FiClock />
+                {`${readTime} min`}
               </li>
             </ul>
           </div>
